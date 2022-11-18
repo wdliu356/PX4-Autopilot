@@ -159,6 +159,7 @@ Mission::on_active()
 	PlannedMissionInterface::update();
 	_land_detected_sub.update();
 	_vehicle_status_sub.update();
+	_global_pos_sub.update();
 
 	_mission_changed = false;
 
@@ -248,9 +249,9 @@ Mission::set_current_mission_index(uint16_t index)
 void
 Mission::set_closest_item_as_current()
 {
-	_is_current_planned_mission_item_valid = (setMissionToClosestItem(_navigator->get_global_position()->lat,
-			_navigator->get_global_position()->lon,
-			_navigator->get_global_position()->alt, _navigator->get_home_position()->alt,
+	_is_current_planned_mission_item_valid = (setMissionToClosestItem(_global_pos_sub.get().lat,
+			_global_pos_sub.get().lon,
+			_global_pos_sub.get().alt, _navigator->get_home_position()->alt,
 			_vehicle_status_sub.get()) == EXIT_SUCCESS);
 }
 
@@ -490,8 +491,8 @@ Mission::set_mission_items()
 						"Takeoff to {1:.1m_v} above home", takeoff_alt - _navigator->get_home_position()->alt);
 
 			_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.lat = _global_pos_sub.get().lat;
+			_mission_item.lon = _global_pos_sub.get().lon;
 			/* hold heading for takeoff items */
 			_mission_item.yaw = _navigator->get_local_position()->heading;
 			_mission_item.altitude = takeoff_alt;
@@ -543,7 +544,7 @@ Mission::set_mission_items()
 
 			/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 			_mission_item.yaw = get_bearing_to_next_waypoint(
-							_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+							_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 							_mission_item.lat, _mission_item.lon);
 
 			_mission_item.force_heading = true;
@@ -551,8 +552,8 @@ Mission::set_mission_items()
 			new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 
 			/* set position setpoint to current while aligning */
-			_mission_item.lat = _navigator->get_global_position()->lat;
-			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.lat = _global_pos_sub.get().lat;
+			_mission_item.lon = _global_pos_sub.get().lon;
 		}
 
 		/* heading is aligned now, prepare transition */
@@ -599,7 +600,7 @@ Mission::set_mission_items()
 			next_mission_items[0u] = _mission_item;
 			num_found_items = 1u;
 
-			float altitude = _navigator->get_global_position()->alt;
+			float altitude = _global_pos_sub.get().alt;
 
 			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 				altitude = pos_sp_triplet->current.alt;
@@ -621,7 +622,7 @@ Mission::set_mission_items()
 			&& !_land_detected_sub.get().landed) {
 
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-			_mission_item.altitude = _navigator->get_global_position()->alt;
+			_mission_item.altitude = _global_pos_sub.get().alt;
 			_mission_item.altitude_is_relative = false;
 
 			new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
@@ -650,7 +651,7 @@ Mission::set_mission_items()
 				* XXX: We might want to change that at some point if it is clear to the user
 				* what the altitude means on this waypoint type.
 				*/
-			float altitude = _navigator->get_global_position()->alt;
+			float altitude = _global_pos_sub.get().alt;
 
 			if (pos_sp_triplet->current.valid
 				&& pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
@@ -863,11 +864,11 @@ Mission::do_need_vertical_takeoff()
 			/* force takeoff if landed (additional protection) */
 			_need_takeoff = true;
 
-		} else if (_navigator->get_global_position()->alt > takeoff_alt - _navigator->get_altitude_acceptance_radius()) {
+		} else if (_global_pos_sub.get().alt > takeoff_alt - _navigator->get_altitude_acceptance_radius()) {
 			/* if in-air and already above takeoff height, don't do takeoff */
 			_need_takeoff = false;
 
-		} else if (_navigator->get_global_position()->alt <= takeoff_alt - _navigator->get_altitude_acceptance_radius()
+		} else if (_global_pos_sub.get().alt <= takeoff_alt - _navigator->get_altitude_acceptance_radius()
 			   && (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			       || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
 			/* if in-air but below takeoff height and we have a takeoff item */
@@ -897,7 +898,7 @@ Mission::do_need_move_to_land()
 	    && (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND)) {
 
 		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-				  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+				  _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 
 		return d_current > _navigator->get_acceptance_radius();
 	}
@@ -912,7 +913,7 @@ Mission::do_need_move_to_takeoff()
 	    && _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 
 		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-				  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+				  _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 
 		return d_current > _navigator->get_acceptance_radius();
 	}
@@ -929,9 +930,9 @@ Mission::copy_position_if_valid(struct mission_item_s *mission_item, struct posi
 		mission_item->altitude = setpoint->alt;
 
 	} else {
-		mission_item->lat = _navigator->get_global_position()->lat;
-		mission_item->lon = _navigator->get_global_position()->lon;
-		mission_item->altitude = _navigator->get_global_position()->alt;
+		mission_item->lat = _global_pos_sub.get().lat;
+		mission_item->lon = _global_pos_sub.get().lon;
+		mission_item->altitude = _global_pos_sub.get().alt;
 	}
 
 	mission_item->altitude_is_relative = false;
@@ -946,7 +947,7 @@ Mission::set_align_mission_item(struct mission_item_s *mission_item, struct miss
 	mission_item->autocontinue = true;
 	mission_item->time_inside = 0.0f;
 	mission_item->yaw = get_bearing_to_next_waypoint(
-				    _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
 				    mission_item_next->lat, mission_item_next->lon);
 	mission_item->force_heading = true;
 }
@@ -959,7 +960,7 @@ Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
 
 	/* takeoff to at least MIS_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
 	if (_land_detected_sub.get().landed) {
-		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt());
+		takeoff_alt = fmaxf(takeoff_alt, _global_pos_sub.get().alt + _navigator->get_takeoff_min_alt());
 
 	} else {
 		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _navigator->get_takeoff_min_alt());
@@ -977,11 +978,11 @@ Mission::heading_sp_update()
 	// Only update if current triplet is valid
 	if (pos_sp_triplet->current.valid) {
 
-		double point_from_latlon[2] = { _navigator->get_global_position()->lat,
-						_navigator->get_global_position()->lon
+		double point_from_latlon[2] = { _global_pos_sub.get().lat,
+						_global_pos_sub.get().lon
 					      };
-		double point_to_latlon[2] = { _navigator->get_global_position()->lat,
-					      _navigator->get_global_position()->lon
+		double point_to_latlon[2] = { _global_pos_sub.get().lat,
+					      _global_pos_sub.get().lon
 					    };
 		float yaw_offset = 0.0f;
 
@@ -1074,7 +1075,7 @@ Mission::do_abort_landing()
 
 	const float alt_landing = get_absolute_altitude_for_item(_mission_item);
 	const float alt_sp = math::max(alt_landing + _navigator->get_landing_abort_min_alt(),
-				       _navigator->get_global_position()->alt);
+				       _global_pos_sub.get().alt);
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
