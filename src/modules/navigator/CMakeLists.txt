@@ -55,4 +55,5 @@ px4_add_module(
 		geofence_breach_avoidance
 		motion_planning
 		mission_feasibility_checker
+		planned_mission_interface
 	)
