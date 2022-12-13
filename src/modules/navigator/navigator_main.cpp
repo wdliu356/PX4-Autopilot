@@ -540,10 +540,12 @@ void Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
 
-				// find NAV_CMD_DO_LAND_START in the mission and
-				// use MAV_CMD_MISSION_START to start the mission from the next item containing a position setpoint
-
-				if (_mission.land_start()) {
+				/* find NAV_CMD_DO_LAND_START in the mission and
+				 * use MAV_CMD_MISSION_START to start the mission from the next item containing a position setpoint
+				 *
+				 */
+				uint8_t result{vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED};
+                                if (_mission.get_land_start_available()) {
 					vehicle_command_s vcmd = {};
 					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
 					vcmd.param1 = _mission.get_land_start_index();
@@ -551,9 +553,10 @@ void Navigator::run()
 
 				} else {
 					PX4_WARN("planned mission landing not available");
+					result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED;
 				}
 
-				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, result);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
