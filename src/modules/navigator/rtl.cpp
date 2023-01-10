@@ -65,8 +65,9 @@ void RTL::on_inactive()
 	setRtlType();
 
 	// Limit inactive calculation to 1Hz
-	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
-		_destination_check_time = hrt_absolute_time();
+    	hrt_abstime now{hrt_absolute_time()};
+	if ((now - _destination_check_time) > 1_s) {
+		_destination_check_time = now;
 
 		const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 
@@ -88,19 +89,15 @@ void RTL::on_inactive()
 void RTL::setRtlType()
 {
 
-	if(_param_rtl_type.get()==2)
-	{
-		if(hasMissionLandStart())
-		{
+	if (_param_rtl_type.get() == 2) {
+		if (hasMissionLandStart()) {
 			_rtl_type = RTL_MISSION_FAST;
-		}
-		else
-		{
+
+		} else {
 			_rtl_type = RTL_MISSION_FAST_REVERSE;
 		}
-	}
-	else
-	{
+
+	} else {
 		_rtl_type = RTL_DIRECT;
 	}
 }
