@@ -151,13 +151,13 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 
 	bool needs_to_land = !_land_detected_sub.get().landed &&
 			     ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) || (_mission_item.nav_cmd == NAV_CMD_TAKEOFF));
-	bool needs_vtol_landing = _vehicle_status_sub.get().is_vtol &&
-				  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
-				  needs_to_land;
+	bool vtol_in_fw = _vehicle_status_sub.get().is_vtol &&
+			  (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
-	if (needs_vtol_landing) {
+	if (needs_to_land) {
 		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
-			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+			// Go to Take off location
+			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TAKEOFF;
 
 			float altitude = _global_pos_sub.get().alt;
 
@@ -172,52 +172,74 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			_mission_item.time_inside = 0.0f;
 			_mission_item.vtol_back_transition = true;
 
-			pos_sp_triplet->previous.valid = false;
-
+			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
 
-		/* transition to MC */
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) {
+		if (vtol_in_fw) {
+			if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_TAKEOFF) {
+				// Go to home location
+				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
-			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-			_mission_item.altitude = _global_pos_sub.get().alt;
-			_mission_item.altitude_is_relative = false;
+				float altitude = _global_pos_sub.get().alt;
+
+				if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+					altitude = pos_sp_triplet->current.alt;
+				}
+
+				_mission_item.lat = _home_pos_sub.get().lat;
+				_mission_item.lon = _home_pos_sub.get().lon;
+				_mission_item.altitude = altitude;
+				_mission_item.altitude_is_relative = false;
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				_mission_item.autocontinue = true;
+				_mission_item.time_inside = 0.0f;
+				_mission_item.vtol_back_transition = true;
+
+				pos_sp_triplet->previous = pos_sp_triplet->current;
+			}
+
+			/* transition to MC */
+			if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) {
+
+				set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+				_mission_item.altitude = _global_pos_sub.get().alt;
+				_mission_item.altitude_is_relative = false;
+				_mission_item.yaw = NAN;
+
+				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
+
+				// make previous setpoint invalid, such that there will be no prev-current line following
+				// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+				pos_sp_triplet->previous.valid = false;
+			}
+
+		} else if ((_work_item_type == WorkItemType::WORK_ITEM_TYPE_TAKEOFF ||
+			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
+			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
+			_mission_item.nav_cmd = NAV_CMD_LAND;
+			_mission_item.lat = _home_pos_sub.get().lat;
+			_mission_item.lon = _home_pos_sub.get().lon;
 			_mission_item.yaw = NAN;
 
-			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
+			if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
+			    do_need_move_to_land()) {
+				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
-			// make previous setpoint invalid, such that there will be no prev-current line following
-			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
-			pos_sp_triplet->previous.valid = false;
-		}
+				_mission_item.altitude = _global_pos_sub.get().alt;
+				_mission_item.altitude_is_relative = false;
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				_mission_item.autocontinue = true;
+				_mission_item.time_inside = 0.0f;
 
-	} else if (needs_to_land) {
-		_mission_item.nav_cmd = NAV_CMD_LAND;
-		_mission_item.lat = _home_pos_sub.get().lat;
-		_mission_item.lon = _home_pos_sub.get().lon;
-		_mission_item.yaw = NAN;
+				// make previous setpoint invalid, such that there will be no prev-current line following.
+				// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
+				pos_sp_triplet->previous.valid = false;
 
-		/* move to landing waypoint before descent if necessary */
-		if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
-		    do_need_move_to_land() &&
-		    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
-		     _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
-
-			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
-
-			_mission_item.altitude = _global_pos_sub.get().alt;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.autocontinue = true;
-			_mission_item.time_inside = 0.0f;
-
-			// make previous setpoint invalid, such that there will be no prev-current line following.
-			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
-			pos_sp_triplet->previous.valid = false;
-
-		} else {
-			_mission_item.altitude = _home_pos_sub.get().alt;
-			_mission_item.altitude_is_relative = false;
+			} else {
+				_mission_item.altitude = _home_pos_sub.get().alt;
+				_mission_item.altitude_is_relative = false;
+				pos_sp_triplet->previous.valid = false;
+			}
 		}
 	}
 }
