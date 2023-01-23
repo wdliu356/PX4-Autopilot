@@ -510,7 +510,7 @@ void AutopilotTester::check_tracks_mission_raw(float corridor_radius_m, bool rev
 	auto ct = get_coordinate_transformation();
 
 	_telemetry->set_rate_position_velocity_ned(5);
-	_telemetry->subscribe_position_velocity_ned([ct, mission_items, corridor_radius_m,reverse,
+	_telemetry->subscribe_position_velocity_ned([ct, mission_items, corridor_radius_m, reverse,
 	    this](Telemetry::PositionVelocityNed position_velocity_ned) {
 		auto progress = _mission_raw->mission_progress();
 
@@ -533,7 +533,8 @@ void AutopilotTester::check_tracks_mission_raw(float corridor_radius_m, bool rev
 			std::array<float, 3> current { position_velocity_ned.position.north_m,
 						       position_velocity_ned.position.east_m,
 						       position_velocity_ned.position.down_m };
-			std::array<float, 3> wp_prev = get_waypoint_for_sequence(mission_items, reverse ? progress.current + 1 : progress.current-1, ct);
+			std::array<float, 3> wp_prev = get_waypoint_for_sequence(mission_items,
+						       reverse ? progress.current + 1 : progress.current - 1, ct);
 			std::array<float, 3> wp_next = get_waypoint_for_sequence(mission_items, progress.current, ct);
 
 			float distance_to_trajectory = point_to_line_distance(current, wp_prev, wp_next);
