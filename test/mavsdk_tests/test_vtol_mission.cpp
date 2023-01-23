@@ -49,6 +49,7 @@ TEST_CASE("RTL direct Home", "[vtol]")
 	AutopilotTesterRtl tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
+	tester.store_home();
 	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission.plan");
 	// fly directly to home position
 	tester.set_rtl_type(0);
