@@ -364,9 +364,7 @@ MissionBase::check_mission_valid()
 	MissionFeasibilityChecker missionFeasibilityChecker(_navigator);
 
 	_is_mission_valid =
-		missionFeasibilityChecker.checkMissionFeasible(_mission,
-				_param_mis_dist_1wp.get(),
-				_param_mis_dist_wps.get());
+		missionFeasibilityChecker.checkMissionFeasible(_mission);
 
 	_navigator->get_mission_result()->valid = _is_mission_valid;
 	_navigator->get_mission_result()->seq_total = _mission.count;
