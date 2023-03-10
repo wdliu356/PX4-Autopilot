@@ -96,34 +96,36 @@ void RTL::on_inactive()
 	_rtl_direct_mission_land.on_inactive();
 
 	// Limit inactive calculation to 1Hz
-    	hrt_abstime now{hrt_absolute_time()};
+	hrt_abstime now{hrt_absolute_time()};
+
 	if ((now - _destination_check_time) > 1_s) {
 		_destination_check_time = now;
-	    	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+		const vehicle_global_position_s &global_position = *_navigator->get_global_position();
 		setRtlTypeAndDestination();
 
-	    	const bool global_position_recently_updated = global_position.timestamp > 0
-		&& hrt_elapsed_time(&global_position.timestamp) < 10_s;
+		const bool global_position_recently_updated = global_position.timestamp > 0
+				&& hrt_elapsed_time(&global_position.timestamp) < 10_s;
 
-	    	rtl_time_estimate_s estimated_time{};
-	    	estimated_time.valid = false;
+		rtl_time_estimate_s estimated_time{};
+		estimated_time.valid = false;
 
-	    if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-		switch (_rtl_type) {
-		    case RtlType::RTL_DIRECT: estimated_time = _rtl_direct.calc_rtl_time_estimate();
-			break;
-		    case RtlType::RTL_DIRECT_MISSION_LAND: estimated_time = _rtl_direct_mission_land.calc_rtl_time_estimate();
-			break;
+		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
+			switch (_rtl_type) {
+			case RtlType::RTL_DIRECT: estimated_time = _rtl_direct.calc_rtl_time_estimate();
+				break;
 
-		    case RtlType::RTL_MISSION_FAST: estimated_time = _rtl_mission.calc_rtl_time_estimate();
-			break;
+			case RtlType::RTL_DIRECT_MISSION_LAND: estimated_time = _rtl_direct_mission_land.calc_rtl_time_estimate();
+				break;
 
-		    case RtlType::RTL_MISSION_FAST_REVERSE: estimated_time = _rtl_mission_reverse.calc_rtl_time_estimate();
-			break;
+			case RtlType::RTL_MISSION_FAST: estimated_time = _rtl_mission.calc_rtl_time_estimate();
+				break;
 
-		    default: break;
+			case RtlType::RTL_MISSION_FAST_REVERSE: estimated_time = _rtl_mission_reverse.calc_rtl_time_estimate();
+				break;
+
+			default: break;
+			}
 		}
-	    }
 
 		_rtl_time_estimate_pub.publish(estimated_time);
 	}

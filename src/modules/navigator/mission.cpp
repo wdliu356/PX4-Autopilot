@@ -317,7 +317,7 @@ MissionBase::set_mission_items()
 
 	} else {
 		setEndOfMissionItems();
-	    	_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 	}
 }
 
