@@ -2036,22 +2036,22 @@ void Mission::cache_command(const mission_item_s &mission_item)
 {
 	switch (mission_item.nav_cmd) {
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
-		_last_gimbal_configure_command = mission_item;
+		_last_gimbal_configure_item = mission_item;
 		break;
 
 	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
-		_last_gimbal_control_command = mission_item;
+		_last_gimbal_control_item = mission_item;
 		break;
 
 	case NAV_CMD_SET_CAMERA_MODE:
-		_last_camera_mode_command = mission_item;
+		_last_camera_mode_item = mission_item;
 		break;
 
 	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
 	case NAV_CMD_IMAGE_START_CAPTURE:
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
-		_last_camera_trigger_command = mission_item;
+		_last_camera_trigger_item = mission_item;
 		break;
 
 	default:
@@ -2061,49 +2061,49 @@ void Mission::cache_command(const mission_item_s &mission_item)
 
 void Mission::replay_cached_gimbal_commands()
 {
-	if (_last_gimbal_configure_command.nav_cmd > 0) {
-		issue_command(_last_gimbal_configure_command);
+	if (_last_gimbal_configure_item.nav_cmd > 0) {
+		issue_command(_last_gimbal_configure_item);
 	}
 
-	if (_last_gimbal_control_command.nav_cmd > 0) {
-		issue_command(_last_gimbal_control_command);
+	if (_last_gimbal_control_item.nav_cmd > 0) {
+		issue_command(_last_gimbal_control_item);
 	}
 }
 
 void Mission::replay_cached_camera_commands()
 {
-	if (_last_camera_mode_command.nav_cmd > 0) {
-		issue_command(_last_camera_mode_command);
+	if (_last_camera_mode_item.nav_cmd > 0) {
+		issue_command(_last_camera_mode_item);
 	}
 
-	if (_last_camera_trigger_command.nav_cmd > 0) {
-		issue_command(_last_camera_trigger_command);
+	if (_last_camera_trigger_item.nav_cmd > 0) {
+		issue_command(_last_camera_trigger_item);
 	}
 }
 
 void Mission::reset_command_cache()
 {
-	_last_gimbal_configure_command = {};
-	_last_gimbal_control_command = {};
-	_last_camera_mode_command = {};
-	_last_camera_trigger_command = {};
+	_last_gimbal_configure_item = {};
+	_last_gimbal_control_item = {};
+	_last_camera_mode_item = {};
+	_last_camera_trigger_item = {};
 }
 
 bool Mission::haveCachedCommands()
 {
-	return _last_gimbal_configure_command.nav_cmd > 0 ||
-	       _last_gimbal_control_command.nav_cmd > 0 ||
-	       _last_camera_mode_command.nav_cmd > 0 ||
-	       _last_camera_trigger_command.nav_cmd > 0;
+	return _last_gimbal_configure_item.nav_cmd > 0 ||
+	       _last_gimbal_control_item.nav_cmd > 0 ||
+	       _last_camera_mode_item.nav_cmd > 0 ||
+	       _last_camera_trigger_item.nav_cmd > 0;
 }
 
 bool Mission::cameraWasTriggering()
 {
-	return (_last_camera_trigger_command.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL
-		&& (int)(_last_camera_trigger_command.params[0] + 0.5f) == 1) ||
-	       (_last_camera_trigger_command.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
-	       (_last_camera_trigger_command.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
-		&& _last_camera_trigger_command.params[0] > 0.f);
+	return (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL
+		&& (int)(_last_camera_trigger_item.params[0] + 0.5f) == 1) ||
+	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
+	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
+		&& _last_camera_trigger_item.params[0] > 0.f);
 }
 
 void Mission::updateChachedCommandsUpToIndex(const int end_index)

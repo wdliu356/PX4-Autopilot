@@ -307,8 +307,8 @@ private:
 	bool _replay_cached_camera_commands_at_next_waypoint = false;
 	int _inactivation_index = -1;
 
-	mission_item_s _last_gimbal_configure_command {};
-	mission_item_s _last_gimbal_control_command {};
-	mission_item_s _last_camera_mode_command {};
-	mission_item_s _last_camera_trigger_command {};
+	mission_item_s _last_gimbal_configure_item {};
+	mission_item_s _last_gimbal_control_item {};
+	mission_item_s _last_camera_mode_item {};
+	mission_item_s _last_camera_trigger_item {};
 };
