@@ -243,12 +243,12 @@ private:
 	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index);
 	bool getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item);
 	bool readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem);
-	void cache_command(const mission_item_s &mission_item);
-	void updateChachedCommandsUpToIndex(int end_index);
-	void replay_cached_gimbal_commands();
-	void replay_cached_camera_commands();
-	void reset_command_cache();
-	bool haveCachedCommands();
+	void cacheItem(const mission_item_s &mission_item);
+	void updateCachedItemsUpToIndex(int end_index);
+	void replayCachedGimbalItems();
+	void replayCachedCameraItems();
+	void resetItemCache();
+	bool haveCachedItems();
 	bool cameraWasTriggering();
 
 	DEFINE_PARAMETERS(
@@ -303,8 +303,8 @@ private:
 	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
 
-	bool _replay_cached_gimbal_commands_at_next_waypoint = false;
-	bool _replay_cached_camera_commands_at_next_waypoint = false;
+	bool _replay_cached_gimbal_items_at_next_waypoint = false;
+	bool _replay_cached_camera_items_at_next_waypoint = false;
 	int _inactivation_index = -1;
 
 	mission_item_s _last_gimbal_configure_item {};

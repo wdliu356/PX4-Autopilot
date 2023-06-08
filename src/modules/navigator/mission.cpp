@@ -190,9 +190,10 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
+	// TODO comment
 	if (_current_mission_index > 0 && _current_mission_index != _inactivation_index) {
-		reset_command_cache();
-		updateChachedCommandsUpToIndex(_current_mission_index - 1);
+		resetItemCache();
+		updateCachedItemsUpToIndex(_current_mission_index - 1);
 	}
 
 	unsigned resume_index;
@@ -208,8 +209,8 @@ Mission::on_activation()
 		set_mission_items();
 	}
 
-	_replay_cached_gimbal_commands_at_next_waypoint = haveCachedCommands();
-	_inactivation_index = -1;
+	_replay_cached_gimbal_items_at_next_waypoint = haveCachedItems();
+	_inactivation_index = -1; // reset
 
 	// reset cruise speed
 	_navigator->reset_cruising_speed();
@@ -248,10 +249,10 @@ Mission::on_active()
 		set_mission_items();
 	}
 
-	if (is_mission_item_reached_or_completed() && _replay_cached_gimbal_commands_at_next_waypoint
+	if (is_mission_item_reached_or_completed() && _replay_cached_gimbal_items_at_next_waypoint
 	    && _work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
-		replay_cached_gimbal_commands();
-		_replay_cached_gimbal_commands_at_next_waypoint = false;
+		replayCachedGimbalItems();
+		_replay_cached_gimbal_items_at_next_waypoint = false;
 
 		mission_item_s next_mission_item = {};
 
@@ -262,7 +263,7 @@ Mission::on_active()
 							    next_mission_item.lat, next_mission_item.lon));
 			_mission_item.force_heading = true;
 			// replay camera commands at the next waypoint to ensure the gimbal and vehicle are aligned for shooting
-			_replay_cached_camera_commands_at_next_waypoint = cameraWasTriggering();
+			_replay_cached_camera_items_at_next_waypoint = cameraWasTriggering();
 		}
 
 		mission_apply_limitation(_mission_item);
@@ -275,9 +276,9 @@ Mission::on_active()
 		return;
 	}
 
-	if (_replay_cached_camera_commands_at_next_waypoint && is_mission_item_reached_or_completed()) {
-		replay_cached_camera_commands();
-		_replay_cached_camera_commands_at_next_waypoint = false;
+	if (_replay_cached_camera_items_at_next_waypoint && is_mission_item_reached_or_completed()) {
+		replayCachedCameraItems();
+		_replay_cached_camera_items_at_next_waypoint = false;
 	}
 
 	/* lets check if we reached the current mission item */
@@ -350,8 +351,9 @@ Mission::set_current_mission_index(uint16_t index)
 
 		_current_mission_index = index;
 
+		// we start from the first item so can reset the cache
 		if (_current_mission_index == 0) {
-			reset_command_cache();
+			resetItemCache();
 		}
 
 		// a mission index is set manually which has the higher priority than the closest mission item
@@ -404,7 +406,7 @@ Mission::set_execution_mode(const uint8_t mode)
 					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					publish_navigator_mission_item(); // for logging
 					_navigator->set_position_setpoint_triplet_updated();
-					cache_command(_mission_item);
+					cacheItem(_mission_item);
 					issue_command(_mission_item);
 				}
 
@@ -430,7 +432,7 @@ Mission::set_execution_mode(const uint8_t mode)
 				// handle switch from reverse to forward mission
 				if (_current_mission_index < 0) {
 					_current_mission_index = 0;
-					reset_command_cache();
+					resetItemCache(); // reset cache as we start from the beginning
 
 				} else if (_current_mission_index < _mission.count - 1) {
 					++_current_mission_index;
@@ -629,8 +631,9 @@ Mission::update_mission()
 		_current_mission_index = 0;
 	}
 
+	// we start from the first item so can reset the cache
 	if (_current_mission_index == 0) {
-		reset_command_cache();
+		resetItemCache();
 	}
 
 	// find and store landing start marker (if available)
@@ -2032,7 +2035,7 @@ bool Mission::readMissionItemAtIndex(const mission_s &mission, const int index, 
 	return success;
 }
 
-void Mission::cache_command(const mission_item_s &mission_item)
+void Mission::cacheItem(const mission_item_s &mission_item)
 {
 	switch (mission_item.nav_cmd) {
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
@@ -2059,7 +2062,7 @@ void Mission::cache_command(const mission_item_s &mission_item)
 	}
 }
 
-void Mission::replay_cached_gimbal_commands()
+void Mission::replayCachedGimbalItems()
 {
 	if (_last_gimbal_configure_item.nav_cmd > 0) {
 		issue_command(_last_gimbal_configure_item);
@@ -2070,7 +2073,7 @@ void Mission::replay_cached_gimbal_commands()
 	}
 }
 
-void Mission::replay_cached_camera_commands()
+void Mission::replayCachedCameraItems()
 {
 	if (_last_camera_mode_item.nav_cmd > 0) {
 		issue_command(_last_camera_mode_item);
@@ -2081,7 +2084,7 @@ void Mission::replay_cached_camera_commands()
 	}
 }
 
-void Mission::reset_command_cache()
+void Mission::resetItemCache()
 {
 	_last_gimbal_configure_item = {};
 	_last_gimbal_control_item = {};
@@ -2089,7 +2092,7 @@ void Mission::reset_command_cache()
 	_last_camera_trigger_item = {};
 }
 
-bool Mission::haveCachedCommands()
+bool Mission::haveCachedItems()
 {
 	return _last_gimbal_configure_item.nav_cmd > 0 ||
 	       _last_gimbal_control_item.nav_cmd > 0 ||
@@ -2106,13 +2109,13 @@ bool Mission::cameraWasTriggering()
 		&& _last_camera_trigger_item.params[0] > 0.f);
 }
 
-void Mission::updateChachedCommandsUpToIndex(const int end_index)
+void Mission::updateCachedItemsUpToIndex(const int end_index)
 {
 	for (int i = 0; i <= end_index; i++) {
 		mission_item_s mission_item = {};
 
 		if (readMissionItemAtIndex(_mission, i, mission_item)) {
-			cache_command(mission_item);
+			cacheItem(mission_item);
 		}
 	}
 }
