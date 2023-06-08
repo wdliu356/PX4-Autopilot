@@ -190,20 +190,21 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
-	// TODO comment
-	if (_current_mission_index > 0 && _current_mission_index != _inactivation_index) {
+	// reset the cache and fill it with the camera and gimbal items up to the previous item
+	if (_current_mission_index > 0) {
 		resetItemCache();
 		updateCachedItemsUpToIndex(_current_mission_index - 1);
 	}
 
 	unsigned resume_index;
 
-	if (cameraWasTriggering()
-	    && getPreviousPositionItemIndex(_mission, _current_mission_index - 1, resume_index)) {
+	if (_inactivation_index > 0 && cameraWasTriggering()
+	    && getPreviousPositionItemIndex(_mission, _inactivation_index - 1, resume_index)) {
 		// the mission we are resuming had camera triggering enabled. In order to not lose any images
 		// we restart the mission at the previous position item.
 		// we will replay the cached commands once we reach the previous position item
 		set_current_mission_index(resume_index);
+		printf("reset to previous position item (resume_index %i)\n", resume_index);
 
 	} else {
 		set_mission_items();
@@ -249,19 +250,19 @@ Mission::on_active()
 		set_mission_items();
 	}
 
-	if (is_mission_item_reached_or_completed() && _replay_cached_gimbal_items_at_next_waypoint
+	if (_replay_cached_gimbal_items_at_next_waypoint && is_mission_item_reached_or_completed()
 	    && _work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
 		replayCachedGimbalItems();
 		_replay_cached_gimbal_items_at_next_waypoint = false;
 
-		mission_item_s next_mission_item = {};
+		mission_item_s next_position_mission_item = {};
 
-		if (getNextPositionMissionItem(_mission, _current_mission_index + 1, next_mission_item)
+		if (getNextPositionMissionItem(_mission, _current_mission_index + 1, next_position_mission_item)
 		    && !PX4_ISFINITE(_mission_item.yaw)) {
-			// we are at the waypoint from which we want to resume the mission, first make sure that we are facing the next waypoint if there is one
+			// we are at the waypoint from which we want to resume the mission, first make sure that we are facing the next waypoint
 			_mission_item.yaw = matrix::wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-							    next_mission_item.lat, next_mission_item.lon));
-			_mission_item.force_heading = true;
+							    next_position_mission_item.lat, next_position_mission_item.lon));
+			_mission_item.force_heading = true; // note: doesn't have effect in fixed-wing mode
 			// replay camera commands at the next waypoint to ensure the gimbal and vehicle are aligned for shooting
 			_replay_cached_camera_items_at_next_waypoint = cameraWasTriggering();
 		}
@@ -635,6 +636,9 @@ Mission::update_mission()
 	if (_current_mission_index == 0) {
 		resetItemCache();
 	}
+
+	// reset as when we update mission we don't want to proceed at previous index
+	_inactivation_index = -1;
 
 	// find and store landing start marker (if available)
 	find_mission_land_start();
@@ -1991,17 +1995,18 @@ void Mission::publish_navigator_mission_item()
 	_navigator_mission_item_pub.publish(navigator_mission_item);
 }
 
-bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index)
+bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int inactivation_index, unsigned &prev_pos_index)
 {
 	struct mission_item_s missionitem = {};
 
-	for (int index = start_index; index >= 0; index--) {
+	for (int index = inactivation_index; index >= 0; index--) {
 		if (!readMissionItemAtIndex(mission, index, missionitem)) {
 			break;
 		}
 
 		if (MissionBlock::item_contains_position(missionitem)) {
 			prev_pos_index = index;
+			printf("prev_pos_index %i, inactivation_index: %i\n", prev_pos_index, inactivation_index);
 			return true;
 		}
 	}
@@ -2106,7 +2111,7 @@ bool Mission::cameraWasTriggering()
 		&& (int)(_last_camera_trigger_item.params[0] + 0.5f) == 1) ||
 	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
 	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
-		&& _last_camera_trigger_item.params[0] > 0.f);
+		&& _last_camera_trigger_item.params[0] > FLT_EPSILON);
 }
 
 void Mission::updateCachedItemsUpToIndex(const int end_index)

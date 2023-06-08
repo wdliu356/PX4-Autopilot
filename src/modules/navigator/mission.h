@@ -240,15 +240,78 @@ private:
 
 	void publish_navigator_mission_item();
 
+
+	/**
+	* @brief Get the index associated with the last item that contains a position
+	* @param mission The mission to search
+	* @param start_index The index to start searching from
+	* @param prev_pos_index The index of the previous position item containing a position
+	* @return true if a previous position item was found
+	*/
 	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index);
+
+	/**
+	 * @brief Get the next item after start_index that contains a position
+	 *
+	 * @param mission The mission to search
+	 * @param start_index The index to start searching from
+	 * @param mission_item The mission item to populate
+	 * @return true if successful
+	 */
 	bool getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item);
+
+	/**
+	 * @brief Read the mission item at the given index
+	 *
+	 * @param mission The mission to read from
+	 * @param index The index to read
+	 * @param missionitem The mission item to populate
+	 * @return true if successful
+	 */
 	bool readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem);
+
+	/**
+	 * @brief Cache the mission items containing gimbal and camera commands
+	 *
+	 * @param mission_item The mission item to cache if applicable
+	 */
 	void cacheItem(const mission_item_s &mission_item);
+
+	/**
+	 * @brief Update the cached items up to the given index
+	 *
+	 * @param end_index The index to update up to
+	 */
 	void updateCachedItemsUpToIndex(int end_index);
+
+	/**
+	 * @brief Replay the cached gimbal items
+	 */
 	void replayCachedGimbalItems();
+
+	/**
+	 * @brief Replay the cached camera items
+	 *
+	 */
 	void replayCachedCameraItems();
+
+	/**
+	 * @brief Reset the item cache
+	 */
 	void resetItemCache();
+
+	/**
+	 * @brief Check if there are cached items
+	 *
+	 * @return true if there are cached items
+	 */
 	bool haveCachedItems();
+
+	/**
+	 * @brief Check if the camera was triggering
+	 *
+	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
+	 */
 	bool cameraWasTriggering();
 
 	DEFINE_PARAMETERS(
