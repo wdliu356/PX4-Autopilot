@@ -271,7 +271,7 @@ private:
 	bool readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem);
 
 	/**
-	 * @brief Cache the mission items containing gimbal and camera commands
+	 * @brief Cache the mission items containing gimbal, camera mode and trigger commands
 	 *
 	 * @param mission_item The mission item to cache if applicable
 	 */
@@ -285,15 +285,15 @@ private:
 	void updateCachedItemsUpToIndex(int end_index);
 
 	/**
-	 * @brief Replay the cached gimbal items
+	 * @brief Replay the cached gimbal and camera mode items
 	 */
-	void replayCachedGimbalItems();
+	void replayCachedGimbalCameraItems();
 
 	/**
-	 * @brief Replay the cached camera items
+	 * @brief Replay the cached trigger items
 	 *
 	 */
-	void replayCachedCameraItems();
+	void replayCachedTriggerItems();
 
 	/**
 	 * @brief Reset the item cache
@@ -301,11 +301,11 @@ private:
 	void resetItemCache();
 
 	/**
-	 * @brief Check if there are cached items
+	 * @brief Check if there are cached gimbal or camera mode items to be replayed
 	 *
 	 * @return true if there are cached items
 	 */
-	bool haveCachedItems();
+	bool haveCachedGimbalOrCameraItems();
 
 	/**
 	 * @brief Check if the camera was triggering
@@ -366,9 +366,8 @@ private:
 	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
 
-	bool _replay_cached_gimbal_items_at_next_waypoint = false;
-	bool _replay_cached_camera_items_at_next_waypoint = false;
-	int _inactivation_index = -1;
+	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not loose images.
+	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 
 	mission_item_s _last_gimbal_configure_item {};
 	mission_item_s _last_gimbal_control_item {};
