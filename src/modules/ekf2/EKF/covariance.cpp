@@ -377,7 +377,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	// accelerometer bias states
 	if (!_accel_bias_inhibit[0] || !_accel_bias_inhibit[1] || !_accel_bias_inhibit[2]) {
 		// Find the maximum delta velocity bias state variance and request a covariance reset if any variance is below the safe minimum
-		const float minSafeStateVar = 1e-9f;
+		const float minSafeStateVar = 1e-9f / sq(_dt_ekf_avg);
 		float maxStateVar = minSafeStateVar;
 		bool resetRequired = false;
 
@@ -398,7 +398,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		// To ensure stability of the covariance matrix operations, the ratio of a max and min variance must
 		// not exceed 100 and the minimum variance must not fall below the target minimum
 		// Also limit variance to a maximum equivalent to a 0.1g uncertainty
-		const float minStateVarTarget = 5E-8f;
+		const float minStateVarTarget = 5E-8f / sq(_dt_ekf_avg);
 		float minAllowedStateVar = fmaxf(0.01f * maxStateVar, minStateVarTarget);
 
 		for (uint8_t stateIndex = 13; stateIndex <= 15; stateIndex++) {
