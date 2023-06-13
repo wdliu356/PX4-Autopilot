@@ -64,7 +64,7 @@ public:
 		_ekf->set_vehicle_at_rest(true);
 	}
 
-	const uint32_t _init_duration_s{8};
+	const uint32_t _init_duration_s{6};
 };
 
 TEST_F(EkfMagTest, fusionStartWithReset)
@@ -78,7 +78,7 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	_sensor_simulator.runSeconds(_init_duration_s);
 
 	// THEN: the fusion initializes using the mag data and runs normally
-	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading, radians(2.f));
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading, radians(1.f));
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
