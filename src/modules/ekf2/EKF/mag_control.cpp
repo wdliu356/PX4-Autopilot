@@ -519,18 +519,12 @@ bool Ekf::resetMagHeading(const Vector3f &mag)
 		return false;
 	}
 
-	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
-
-	Vector3f mag_bias{0.f, 0.f, 0.f};
-
 	// use mag bias if variance good (unless configured for HEADING only)
-	if (_params.mag_fusion_type != MagFuseType::HEADING) {
+	Vector3f mag_bias{0.f, 0.f, 0.f};
+	const Vector3f mag_bias_var = getMagBiasVariance();
 
-		const Vector3f mag_bias_var = getMagBiasVariance();
-
-		if ((mag_bias_var.min() > 0.f) && (mag_bias_var.max() <= R_MAG)) {
-			mag_bias = _state.mag_B;
-		}
+	if ((mag_bias_var.min() > 0.f) && (mag_bias_var.max() <= math::max(sq(_params.mag_noise), sq(0.01f)))) {
+		mag_bias = _state.mag_B;
 	}
 
 	const Vector3f mag_init = _mag_lpf.getState() - mag_bias;
@@ -554,7 +548,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag)
 
 		// calculate the observed yaw angle and yaw variance
 		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
-		float yaw_new_variance = R_MAG;
+		float yaw_new_variance = math::max(sq(_params.mag_heading_noise), sq(0.01f));
 
 		ECL_INFO("reset mag heading %.3f -> %.3f rad (bias:[%.3f, %.3f, %.3f], declination:%.1f)",
 			 (double)getEulerYaw(_R_to_earth), (double)yaw_new,
