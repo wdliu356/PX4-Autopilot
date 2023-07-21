@@ -1,0 +1,5 @@
+Follow the format of IridiumSBD.cpp
+Need to create a new orb msg for this projects
+THis can be adjusted based on IridiumSBD.hpp, referring to the  _pub definition
+The structure of the msg need to be defined in the uORB/topics folder in a seperate .h file
+The UOrb id needs to be defined in the uORBTopics.hpp file

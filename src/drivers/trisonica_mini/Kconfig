@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TRISONICA_MINI
+	bool "trisonica_mini"
+	default n
+	---help---
+		Enable support for trisonica_mini

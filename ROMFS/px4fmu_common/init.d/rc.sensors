@@ -219,3 +219,16 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
+
+# start trisonica mini wind sensor
+if param compare -s EN_TRISONICA 1
+then
+	trisonica_mini start -d /dev/ttyS0
+fi
+if param compare -s EN_TRISONICA 2
+then
+	trisonica_mini start -d /dev/ttyS1
+fi
+
+
+

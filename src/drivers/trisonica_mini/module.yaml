@@ -1,0 +1,16 @@
+module_name: TriSonica Mini
+serial_config:
+    - command: |
+        # add a sleep here to make sure that the module is powered
+        usleep 200000
+        if iridiumcsd start -d /dev/ttyS1 -v
+        then
+            mavlink start -d /dev/iridiumcsd -m iridium -b
+        else
+            tune_control play -t 20
+        fi
+      port_config_param:
+        name: ICSD_CONFIG
+        group: Iridium CSD
+        default: TEL4
+

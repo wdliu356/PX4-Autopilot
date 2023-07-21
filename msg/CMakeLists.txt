@@ -222,6 +222,7 @@ set(msg_files
 	VtolVehicleStatus.msg
 	Wind.msg
 	YawEstimatorStatus.msg
+	TrisonicaStatus.msg
 )
 list(SORT msg_files)
 

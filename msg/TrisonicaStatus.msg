@@ -1,0 +1,13 @@
+float64 wind_speed3d
+float64 wind_speed2d
+float64 u_vector
+float64 v_vector
+float64 w_vector
+float64 pressure
+float64 temperature
+float64 air_density
+float64 roll
+float64 pitch
+int32 horizontal_wind_direction
+int32 true_heading
+uint64 timestamp

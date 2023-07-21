@@ -280,3 +280,19 @@ PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
+
+
+/**
+ * Enable the Trisonica Mini sensor
+ *
+ * Value 0:diabled, 1: ttyS0 (Tele1), 2: ttyS1 (Tele2)
+ *
+ * WARNING: the failures can easily cause crashes and are to be used with caution!
+ *
+ * @value 0 Disabled
+ * @value 1 ttyS0 (Tele1)
+ * @value 2 ttyS1 (Tele2)
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(EN_TRISONICA, 0);
